@@ -3,4 +3,4 @@ project(LC_3_VM C)
 
 set(CMAKE_C_STANDARD 23)
 
-add_executable(LC_3_VM main.c LC-3.h)
+add_executable(LC_3_VM LD-3.c LC-3.h)
