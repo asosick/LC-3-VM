@@ -9,6 +9,9 @@
 
 #define MEMORY_MAX (1<<16)
 #define u16 uint16_t
+#define u32 uint32_t
+#define s16 int16_t
+#define s32 int32_t
 
 
 
@@ -48,6 +51,8 @@ enum Opcodes
     OP_LEA,     //load effective address
     OP_TRAP     //execute trap
 };
+
+void add(u16 instr);
 
 //Condition Flags (stored information about previous calculation)
 enum Conditions

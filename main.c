@@ -25,6 +25,7 @@ int main(int argc, const char* argv[]) {
 
         switch (op) {
             case OP_ADD:
+                add(instr);
                 break;
             case OP_AND:
                 break;
@@ -63,3 +64,52 @@ int main(int argc, const char* argv[]) {
 
     return 0;
 }
+
+
+u16 sign_extend(u16 x, u32 bit_count)
+{
+    if((x >> (bit_count)) & 0x1)
+    {
+        x |= (0xFFFF << bit_count);
+    }
+    return x;
+}
+
+void update_flags(u16 r)
+{
+    if(reg[r] == 0)
+    {
+        reg[R_COND] = FL_ZRO;
+    }
+    else if (reg[r] >> 15)
+    {
+        reg[R_COND] = FL_NEG;
+    }
+    else
+    {
+        reg[R_COND] = FL_POS;
+    }
+}
+
+
+
+/* opcode implementations */
+void add(u16 instr)
+{
+    u16 dr = (instr >> 9) & 0x7;
+    u16 sr1 = (instr >> 6) & 0x7;
+    u16 imm_flag = (instr >> 5) & 0x1;
+
+    if(imm_flag)
+    {
+        u16 imm5 = sign_extend(instr & 0x1F, 5);
+        reg[dr] = reg[sr1] + imm5;
+    }
+    else
+    {
+        u16 sr2 = instr & 0x7;
+        reg[dr] = reg[sr1] & reg[sr2];
+    }
+    update_flags(dr);
+}
+
