@@ -96,6 +96,10 @@ void trap_halt();
 
 void trap_branch(u16 instr);
 
+//memory
+void mem_write(u16 address, u16 value);
+u16 mem_read(u16 address);
+
 //Memory mapped registers
 enum MemoryMappedRegisters
 {
@@ -109,5 +113,6 @@ struct termios original_tio;
 void disable_input_buffering();
 void restore_input_buffering();
 uint16_t check_key();
+
 
 #endif //LC_3_VM_LC_3_H

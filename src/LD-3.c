@@ -33,7 +33,7 @@ int main(int argc, const char* argv[]) {
     int running = 1;
     while(running)
     {
-        const u16 instr = mem[reg[R_PC]++];
+        const u16 instr = mem_read(reg[R_PC]++);
         const u16 op = instr >> 12;
 
         switch (op) {
@@ -82,7 +82,7 @@ int main(int argc, const char* argv[]) {
             case OP_RES:
             case OP_RTI:
             default:
-                printf("Invalid opcode");
+                printf("Invalid opcode of %d\n", op);
                 return 1;
         }
     }
@@ -158,7 +158,7 @@ void trap_out()
 
 void trap_in()
 {
-    printf("Please enter char..");
+    puts("Please enter char..");
     char c = getchar();
     putc(c, stdout);
     fflush(stdout);
@@ -228,13 +228,9 @@ void and(const u16 instr)
 
 void br(const u16 instr)
 {
-    u16 n_flag = (instr >> 11) & 0x1;
-    u16 z_flag = (instr >> 10) & 0x1;
-    u16 p_flag = (instr >> 9) & 0x1;
+    u16 cond_flag = (instr >> 9) & 0x7;
 
-    if(    (n_flag && reg[R_COND] == FL_NEG)
-        || (z_flag && reg[R_COND] == FL_ZRO)
-        || (p_flag && reg[R_COND] == FL_POS))
+    if(cond_flag & reg[R_COND])
     {
         u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
         reg[R_PC] += pcoffset9;
@@ -276,7 +272,7 @@ void ld(const u16 instr)
     u16 dr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
 
-    u16 loaded = mem[reg[R_PC] + pcoffset9];
+    u16 loaded = mem_read(reg[R_PC] + pcoffset9);
     reg[dr] = loaded;
     set_condition_codes(loaded);
 }
@@ -286,7 +282,7 @@ void ldi(const u16 instr)
     u16 dr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
 
-    u16 loaded = mem[mem[reg[R_PC] + pcoffset9]];
+    u16 loaded = mem_read(mem_read(reg[R_PC] + pcoffset9));
     reg[dr] = loaded;
     set_condition_codes(loaded);
 }
@@ -297,7 +293,7 @@ void ldr(const u16 instr)
     u16 base_r = (instr >> 6) & 0x7;
     u16 offset6 = sign_extend(instr & 0x3F, 6);
 
-    u16 loaded = mem[base_r + offset6];
+    u16 loaded = mem_read(reg[base_r] + offset6);
     reg[dr] = loaded;
     set_condition_codes(loaded);
 }
@@ -333,14 +329,14 @@ void st(const u16 instr)
 {
     u16 sr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
-    mem[reg[R_PC] + pcoffset9] = reg[sr];
+    mem_write(reg[R_PC] + pcoffset9, reg[sr]);
 }
 
 void sti(const u16 instr)
 {
     u16 sr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
-    mem[mem[reg[R_PC] + pcoffset9]] = reg[sr];
+    mem_write(mem_read(reg[R_PC] + pcoffset9), reg[sr]);
 }
 
 void str(const u16 instr)
@@ -349,15 +345,9 @@ void str(const u16 instr)
     u16 base_r = (instr >> 6) & 0x7;
     u16 pcoffset6 = sign_extend(instr & 0x3F, 6);
 
-    mem[base_r + pcoffset6] = reg[sr];
+    mem_write(reg[base_r] + pcoffset6, reg[sr]);
 }
 
-void trap(const u16 instr)
-{
-    reg[R_R7] = reg[R_PC];
-    u16 trapvect8 = instr & 0xFF;
-    reg[R_PC] = mem[trapvect8];
-}
 
 //File
 void read_image_file(FILE* file)
