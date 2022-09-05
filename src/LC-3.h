@@ -10,10 +10,10 @@
 #define MEMORY_MAX (1<<16)
 #define u16 uint16_t
 #define u32 uint32_t
-#define s16 int16_t
-#define s32 int32_t
 
-
+//utils
+u16 sign_extend(u16 x, u32 bit_count);
+void set_condition_codes(u16 r);
 
 //Registers
 enum Registers
@@ -53,6 +53,22 @@ enum Opcodes
 };
 
 void add(u16 instr);
+void and(u16 instr);
+void br(u16 instr);
+void jmp(u16 instr);
+void jsr(u16 instr);
+void ld(u16 instr);
+void ldi(u16 instr);
+void ldr(u16 instr);
+void lea(u16 instr);
+void not(u16 instr);
+void ret(u16 instr);
+void rti(u16 instr);
+void st(u16 instr);
+void sti(u16 instr);
+void str(u16 instr);
+void trap(u16 instr);
+
 
 //Condition Flags (stored information about previous calculation)
 enum Conditions
@@ -72,6 +88,13 @@ enum TRAPS
     TRAP_PUTSP = 0x24,  //output a byte string
     TRAP_HALT = 0x25    //halt the program
 };
+void trap_puts();
+void trap_getc();
+void trap_out();
+void trap_in();
+void trap_putsp();
+void trap_halt();
+
 void trap_branch(u16 instr);
 
 #endif //LC_3_VM_LC_3_H

@@ -20,36 +20,48 @@ int main(int argc, const char* argv[]) {
     int running = 1;
     while(running)
     {
-        u16 instr = mem_read(reg[R_PC]++);
-        u16 op = instr >> 12;
+        const u16 instr = mem[reg[R_PC]++];
+        const u16 op = instr >> 12;
 
         switch (op) {
             case OP_ADD:
                 add(instr);
                 break;
             case OP_AND:
+                and(instr);
                 break;
             case OP_NOT:
+                not(instr);
                 break;
             case OP_BR:
+                br(instr);
                 break;
             case OP_JMP:
+                jmp(instr);
                 break;
             case OP_JSR:
+                jsr(instr);
                 break;
             case OP_LD:
+                ld(instr);
                 break;
             case OP_LDI:
+                ldi(instr);
                 break;
             case OP_LDR:
+                ldr(instr);
                 break;
             case OP_LEA:
+                lea(instr);
                 break;
             case OP_ST:
+                st(instr);
                 break;
             case OP_STI:
+                sti(instr);
                 break;
             case OP_STR:
+                str(instr);
                 break;
             case OP_TRAP:
                 trap_branch(instr);
@@ -61,28 +73,30 @@ int main(int argc, const char* argv[]) {
                 return 1;
         }
     }
-
-
-    return 0;
 }
 
 void trap_branch(u16 instr)
 {
     reg[R_R7] = reg[R_PC];
-
     switch(instr & 0xFF)
     {
         case TRAP_GETC:
+            trap_getc();
             break;
         case TRAP_OUT:
+            trap_out();
             break;
         case TRAP_PUTS:
+            trap_puts();
             break;
         case TRAP_IN:
+            trap_in();
             break;
         case TRAP_PUTSP:
+            trap_putsp();
             break;
         case TRAP_HALT:
+            trap_halt();
             break;
         default:
             printf("Unrecognized trap code");
@@ -150,7 +164,7 @@ void trap_in()
 
 void trap_putsp()
 {
-    u16* w = memory + reg[R_R0];
+    u16* w = mem + reg[R_R0];
     while(*w)
     {
         char char1 = (*w) & 0xFF;
@@ -170,7 +184,7 @@ void trap_halt()
 
 
 /* opcode implementations */
-void add(u16 instr)
+void add(const u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 sr1 = (instr >> 6) & 0x7;
@@ -189,7 +203,7 @@ void add(u16 instr)
     set_condition_codes(dr);
 }
 
-void and(u16 instr)
+void and(const u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 sr1 = (instr >> 6) & 0x7;
@@ -208,7 +222,7 @@ void and(u16 instr)
     set_condition_codes(reg[dr]);
 }
 
-void br(u16 instr)
+void br(const u16 instr)
 {
     u16 n_flag = (instr >> 11) & 0x1;
     u16 z_flag = (instr >> 10) & 0x1;
@@ -223,7 +237,7 @@ void br(u16 instr)
     }
 }
 
-void jmp(u16 instr)
+void jmp(const u16 instr)
 {
     u16 base_r = (instr >> 6) & 0x7;
     if(base_r == R_R7)
@@ -236,7 +250,7 @@ void jmp(u16 instr)
     }
 }
 
-void jsr(u16 instr)
+void jsr(const u16 instr)
 {
     reg[R_R7] = reg[R_PC];
 
@@ -253,7 +267,7 @@ void jsr(u16 instr)
     }
 }
 
-void ld(u16 instr)
+void ld(const u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
@@ -263,17 +277,17 @@ void ld(u16 instr)
     set_condition_codes(loaded);
 }
 
-void ldi(u16 instr)
+void ldi(const u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
 
-    u16 loaded = mem(mem[reg[R_PC] + pcoffset9]);
+    u16 loaded = mem[mem[reg[R_PC] + pcoffset9]];
     reg[dr] = loaded;
     set_condition_codes(loaded);
 }
 
-void ldr(u16 instr)
+void ldr(const u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 base_r = (instr >> 6) & 0x7;
@@ -284,7 +298,7 @@ void ldr(u16 instr)
     set_condition_codes(loaded);
 }
 
-void lea(u16 instr)
+void lea(const u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
@@ -292,7 +306,7 @@ void lea(u16 instr)
     set_condition_codes(reg[dr]);
 }
 
-void not(u16 instr)
+void not(const u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 sr = (instr >> 6) & 0x7;
@@ -301,31 +315,31 @@ void not(u16 instr)
     set_condition_codes(bitwise_complement); //double check this
 }
 
-void ret(u16 instr)
+void ret(const u16 instr)
 {
     reg[R_PC] = reg[R_R7];
 }
 
-void rti(u16 instr)
+void rti(const u16 instr)
 {
     abort();
 }
 
-void st(u16 instr)
+void st(const u16 instr)
 {
     u16 sr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
     mem[reg[R_PC] + pcoffset9] = reg[sr];
 }
 
-void sti(u16 instr)
+void sti(const u16 instr)
 {
     u16 sr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
     mem[mem[reg[R_PC] + pcoffset9]] = reg[sr];
 }
 
-void str(u16 instr)
+void str(const u16 instr)
 {
     u16 sr = (instr >> 9) & 0x7;
     u16 base_r = (instr >> 6) & 0x7;
@@ -334,7 +348,7 @@ void str(u16 instr)
     mem[base_r + pcoffset6] = reg[sr];
 }
 
-void trap(u16 instr)
+void trap(const u16 instr)
 {
     reg[R_R7] = reg[R_PC];
     u16 trapvect8 = instr & 0xFF;
