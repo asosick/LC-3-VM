@@ -5,7 +5,7 @@
 
 u16 sign_extend(u16 x, u32 bit_count)
 {
-    if((x >> (bit_count)) & 0x1)
+    if((x >> (bit_count - 1)) & 0x1)
     {
         x |= (0xFFFF << bit_count);
     }

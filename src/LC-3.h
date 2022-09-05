@@ -109,7 +109,6 @@ enum MemoryMappedRegisters
 
 //Input buffering
 void handle_interrupt(int signal);
-struct termios original_tio;
 void disable_input_buffering();
 void restore_input_buffering();
 uint16_t check_key();

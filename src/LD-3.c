@@ -30,11 +30,10 @@ int main(int argc, const char* argv[]) {
     enum {PC_START = 0x3000};
     reg[R_PC] = PC_START;
 
-    int running = 1;
-    while(running)
+    while(1)
     {
-        const u16 instr = mem_read(reg[R_PC]++);
-        const u16 op = instr >> 12;
+        u16 instr = mem_read(reg[R_PC]++);
+        u16 op = instr >> 12;
 
         switch (op) {
             case OP_ADD:
@@ -86,6 +85,7 @@ int main(int argc, const char* argv[]) {
                 return 1;
         }
     }
+    restore_input_buffering();
 }
 
 void trap_branch(u16 instr)
@@ -188,7 +188,7 @@ void trap_halt()
 
 
 /* opcode implementations */
-void add(const u16 instr)
+void add(u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 sr1 = (instr >> 6) & 0x7;
@@ -202,12 +202,12 @@ void add(const u16 instr)
     else
     {
         u16 sr2 = instr & 0x7;
-        reg[dr] = reg[sr1] & reg[sr2];
+        reg[dr] = reg[sr1] + reg[sr2];
     }
     set_condition_codes(dr);
 }
 
-void and(const u16 instr)
+void and(u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 sr1 = (instr >> 6) & 0x7;
@@ -226,7 +226,7 @@ void and(const u16 instr)
     set_condition_codes(reg[dr]);
 }
 
-void br(const u16 instr)
+void br(u16 instr)
 {
     u16 cond_flag = (instr >> 9) & 0x7;
 
@@ -237,20 +237,13 @@ void br(const u16 instr)
     }
 }
 
-void jmp(const u16 instr)
+void jmp(u16 instr)
 {
     u16 base_r = (instr >> 6) & 0x7;
-    if(base_r == R_R7)
-    {
-        reg[R_PC] = reg[R_R7];
-    }
-    else
-    {
-        reg[R_PC] = reg[base_r];
-    }
+    reg[R_PC] = reg[base_r];
 }
 
-void jsr(const u16 instr)
+void jsr(u16 instr)
 {
     reg[R_R7] = reg[R_PC];
 
@@ -258,7 +251,7 @@ void jsr(const u16 instr)
     if(r_flag == 0)
     {
         u16 base_r = (instr >> 6) & 0x7;
-        reg[R_PC] = reg[base_r];
+        reg[R_PC] = reg[base_r]; //possible bug
     }
     else
     {
@@ -267,27 +260,27 @@ void jsr(const u16 instr)
     }
 }
 
-void ld(const u16 instr)
+void ld(u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
 
     u16 loaded = mem_read(reg[R_PC] + pcoffset9);
     reg[dr] = loaded;
-    set_condition_codes(loaded);
+    set_condition_codes(dr);
 }
 
-void ldi(const u16 instr)
+void ldi(u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
 
     u16 loaded = mem_read(mem_read(reg[R_PC] + pcoffset9));
     reg[dr] = loaded;
-    set_condition_codes(loaded);
+    set_condition_codes(dr);
 }
 
-void ldr(const u16 instr)
+void ldr(u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 base_r = (instr >> 6) & 0x7;
@@ -295,51 +288,50 @@ void ldr(const u16 instr)
 
     u16 loaded = mem_read(reg[base_r] + offset6);
     reg[dr] = loaded;
-    set_condition_codes(loaded);
+    set_condition_codes(dr);
 }
 
-void lea(const u16 instr)
+void lea(u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
     reg[dr] = reg[R_PC] + pcoffset9;
-    set_condition_codes(reg[dr]);
+    set_condition_codes(dr);
 }
 
-void not(const u16 instr)
+void not(u16 instr)
 {
     u16 dr = (instr >> 9) & 0x7;
     u16 sr = (instr >> 6) & 0x7;
-    u16 bitwise_complement = ~sr;
-    reg[dr] = bitwise_complement;
-    set_condition_codes(bitwise_complement); //double check this
+    reg[dr] = ~reg[sr];
+    set_condition_codes(dr); //double check this
 }
 
-void ret(const u16 instr)
+void ret(u16 instr)
 {
     reg[R_PC] = reg[R_R7];
 }
 
-void rti(const u16 instr)
+void rti(u16 instr)
 {
     abort();
 }
 
-void st(const u16 instr)
+void st(u16 instr)
 {
     u16 sr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
     mem_write(reg[R_PC] + pcoffset9, reg[sr]);
 }
 
-void sti(const u16 instr)
+void sti(u16 instr)
 {
     u16 sr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
     mem_write(mem_read(reg[R_PC] + pcoffset9), reg[sr]);
 }
 
-void str(const u16 instr)
+void str(u16 instr)
 {
     u16 sr = (instr >> 9) & 0x7;
     u16 base_r = (instr >> 6) & 0x7;
@@ -403,6 +395,7 @@ u16 mem_read(u16 address)
     return mem[address];
 }
 
+struct termios original_tio;
 //input buffering
 void disable_input_buffering()
 {
