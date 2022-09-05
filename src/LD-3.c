@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <sys/termios.h>
+
 #include "LC-3.h"
+#include "utils.h"
 
 u16 mem[MEMORY_MAX];
 u16 reg[R_COUNT];
@@ -11,6 +17,13 @@ int main(int argc, const char* argv[]) {
         printf("lc3 [image-file1] ...\n");
         exit(EXIT_FAILURE);
     }
+    else
+    {
+        read_image(argv[1]);
+    }
+
+    signal(SIGINT, handle_interrupt);
+    disable_input_buffering();
 
     reg[R_COND] = FL_ZRO;
 
@@ -102,15 +115,6 @@ void trap_branch(u16 instr)
             printf("Unrecognized trap code");
             exit(EXIT_FAILURE);
     }
-}
-
-u16 sign_extend(u16 x, u32 bit_count)
-{
-    if((x >> (bit_count)) & 0x1)
-    {
-        x |= (0xFFFF << bit_count);
-    }
-    return x;
 }
 
 void set_condition_codes(u16 r)
@@ -353,4 +357,91 @@ void trap(const u16 instr)
     reg[R_R7] = reg[R_PC];
     u16 trapvect8 = instr & 0xFF;
     reg[R_PC] = mem[trapvect8];
+}
+
+//File
+void read_image_file(FILE* file)
+{
+    u16 origin;
+    fread(&origin, sizeof(origin), 1, file);
+    origin = swap16(origin);
+
+    /* load the entire image file into memory */
+    u16 max_read = MEMORY_MAX - origin;
+    u16* p = mem + origin;
+    u16 read = fread(p, sizeof(u16), max_read, file);
+
+    while(read-- > 0)
+    {
+        *p = swap16(*p);
+        ++p;
+    }
+}
+
+int read_image(const char* image_path)
+{
+    FILE* file = fopen(image_path, "rb");
+    if (!file){
+        printf("Could not open supplied filed");
+        exit(EXIT_FAILURE);
+    }
+    read_image_file(file);
+    fclose(file);
+    return 1;
+}
+
+//Memory mapped registers
+void mem_write(u16 address, u16 value)
+{
+    mem[address] = value;
+}
+
+u16 mem_read(u16 address)
+{
+    if(address == MR_KBSR)
+    {
+        if(check_key())
+        {
+            mem[MR_KBSR] = (1 << 15);
+            mem[MR_KBDR] = getchar();
+        }
+        else
+        {
+            mem[MR_KBSR] = 0;
+        }
+    }
+    return mem[address];
+}
+
+//input buffering
+void disable_input_buffering()
+{
+    tcgetattr(STDIN_FILENO, &original_tio);
+    struct termios new_tio = original_tio;
+    new_tio.c_lflag &= ~ICANON & ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
+}
+
+void restore_input_buffering()
+{
+    tcsetattr(STDIN_FILENO, TCSANOW, &original_tio);
+}
+
+uint16_t check_key()
+{
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(STDIN_FILENO, &readfds);
+
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
+    return select(1, &readfds, NULL, NULL, &timeout) != 0;
+}
+
+void handle_interrupt(int signal)
+{
+    restore_input_buffering();
+    printf("\n");
+    exit(-2);
 }

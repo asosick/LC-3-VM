@@ -5,15 +5,14 @@
 #ifndef LC_3_VM_LC_3_H
 #define LC_3_VM_LC_3_H
 
-#include "stdint.h"
-
-#define MEMORY_MAX (1<<16)
-#define u16 uint16_t
-#define u32 uint32_t
+#include "constants.h"
 
 //utils
 u16 sign_extend(u16 x, u32 bit_count);
 void set_condition_codes(u16 r);
+void read_image_file(FILE* file);
+int read_image(const char* image_path);
+
 
 //Registers
 enum Registers
@@ -96,5 +95,19 @@ void trap_putsp();
 void trap_halt();
 
 void trap_branch(u16 instr);
+
+//Memory mapped registers
+enum MemoryMappedRegisters
+{
+    MR_KBSR = 0xFE00,    //keyboard status
+    MR_KBDR = 0xFE02     //keyboard data
+};
+
+//Input buffering
+void handle_interrupt(int signal);
+struct termios original_tio;
+void disable_input_buffering();
+void restore_input_buffering();
+uint16_t check_key();
 
 #endif //LC_3_VM_LC_3_H
