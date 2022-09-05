@@ -62,4 +62,16 @@ enum Conditions
     FL_NEG = 1 << 2,    //Result was negative
 };
 
+//Traps
+enum TRAPS
+{
+    TRAP_GETC = 0x20,   //get char from keyboard
+    TRAP_OUT = 0x21,    //output a char
+    TRAP_PUTS = 0x22,   //output a word string
+    TRAP_IN = 0x23,     //get character from keyboard and echo out
+    TRAP_PUTSP = 0x24,  //output a byte string
+    TRAP_HALT = 0x25    //halt the program
+};
+void trap_branch(u16 instr);
+
 #endif //LC_3_VM_LC_3_H

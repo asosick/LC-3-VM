@@ -52,6 +52,7 @@ int main(int argc, const char* argv[]) {
             case OP_STR:
                 break;
             case OP_TRAP:
+                trap_branch(instr);
                 break;
             case OP_RES:
             case OP_RTI:
@@ -65,6 +66,29 @@ int main(int argc, const char* argv[]) {
     return 0;
 }
 
+void trap_branch(u16 instr)
+{
+    reg[R_R7] = reg[R_PC];
+
+    switch(instr & 0xFF)
+    {
+        case TRAP_GETC:
+            break;
+        case TRAP_OUT:
+            break;
+        case TRAP_PUTS:
+            break;
+        case TRAP_IN:
+            break;
+        case TRAP_PUTSP:
+            break;
+        case TRAP_HALT:
+            break;
+        default:
+            printf("Unrecognized trap code");
+            exit(EXIT_FAILURE);
+    }
+}
 
 u16 sign_extend(u16 x, u32 bit_count)
 {
@@ -91,6 +115,58 @@ void set_condition_codes(u16 r)
     }
 }
 
+/* trap implementations */
+void trap_puts()
+{
+    u16* c = mem + reg[R_R0];
+    while(*c)
+    {
+        putc((char)*c, stdout);
+        ++c;
+    }
+    fflush(stdout);
+}
+
+void trap_getc()
+{
+    reg[R_R0] = (u16)getchar();
+}
+
+void trap_out()
+{
+    putc((char)reg[R_R0], stdout);
+    fflush(stdout);
+}
+
+void trap_in()
+{
+    printf("Please enter char..");
+    char c = getchar();
+    putc(c, stdout);
+    fflush(stdout);
+    reg[R_R0] = (u16)c;
+    set_condition_codes(R_R0);
+}
+
+void trap_putsp()
+{
+    u16* w = memory + reg[R_R0];
+    while(*w)
+    {
+        char char1 = (*w) & 0xFF;
+        putc(char1, stdout);
+        char char2 = (*w) >> 8;
+        if(char2) putc(char2, stdout);
+        ++w;
+    }
+    fflush(stdout);
+}
+
+void trap_halt()
+{
+    printf("Halting Execution");
+    exit(EXIT_SUCCESS);
+}
 
 
 /* opcode implementations */
