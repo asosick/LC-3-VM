@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "LC-3.h"
 
-u16 memory[MEMORY_MAX];
+u16 mem[MEMORY_MAX];
 u16 reg[R_COUNT];
 
 int main(int argc, const char* argv[]) {
@@ -182,7 +182,7 @@ void ld(u16 instr)
     u16 dr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
 
-    u16 loaded = mem(reg[R_PC] + pcoffset9);
+    u16 loaded = mem[reg[R_PC] + pcoffset9];
     reg[dr] = loaded;
     set_condition_codes(loaded);
 }
@@ -192,7 +192,7 @@ void ldi(u16 instr)
     u16 dr = (instr >> 9) & 0x7;
     u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
 
-    u16 loaded = mem(mem(reg[R_PC] + pcoffset9));
+    u16 loaded = mem(mem[reg[R_PC] + pcoffset9]);
     reg[dr] = loaded;
     set_condition_codes(loaded);
 }
@@ -203,7 +203,7 @@ void ldr(u16 instr)
     u16 base_r = (instr >> 6) & 0x7;
     u16 offset6 = sign_extend(instr & 0x3F, 6);
 
-    u16 loaded = mem(base_r + offset6);
+    u16 loaded = mem[base_r + offset6];
     reg[dr] = loaded;
     set_condition_codes(loaded);
 }
@@ -232,5 +232,35 @@ void ret(u16 instr)
 
 void rti(u16 instr)
 {
+    abort();
+}
 
+void st(u16 instr)
+{
+    u16 sr = (instr >> 9) & 0x7;
+    u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
+    mem[reg[R_PC] + pcoffset9] = reg[sr];
+}
+
+void sti(u16 instr)
+{
+    u16 sr = (instr >> 9) & 0x7;
+    u16 pcoffset9 = sign_extend(instr & 0x1FF, 9);
+    mem[mem[reg[R_PC] + pcoffset9]] = reg[sr];
+}
+
+void str(u16 instr)
+{
+    u16 sr = (instr >> 9) & 0x7;
+    u16 base_r = (instr >> 6) & 0x7;
+    u16 pcoffset6 = sign_extend(instr & 0x3F, 6);
+
+    mem[base_r + pcoffset6] = reg[sr];
+}
+
+void trap(u16 instr)
+{
+    reg[R_R7] = reg[R_PC];
+    u16 trapvect8 = instr & 0xFF;
+    reg[R_PC] = mem[trapvect8];
 }
